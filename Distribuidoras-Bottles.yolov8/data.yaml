@@ -1,0 +1,13 @@
+path: /home/yan-gorillaz/Documents/Yan/Github/Bottles-Visão-Computacional/Distribuidoras-Bottles.yolov8
+train: train/images
+val: train/images
+
+nc: 1
+names: ['Tampa']
+
+roboflow:
+  workspace: vinicius-yan
+  project: distribuidoras-bottles
+  version: dataset
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/vinicius-yan/distribuidoras-bottles/dataset/dataset

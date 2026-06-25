@@ -2,7 +2,7 @@
 Distribuidoras-Bottles - vdataset distribuidoras-bottles
 ==============================
 
-This dataset was exported via roboflow.com on June 23, 2026 at 12:21 AM GMT
+This dataset was exported via roboflow.com on June 25, 2026 at 2:08 AM GMT
 
 Roboflow is an end-to-end computer vision platform that helps you
 * collaborate with your team on computer vision projects
@@ -17,7 +17,7 @@ visit https://github.com/roboflow/notebooks
 
 To find over 100k other datasets and pre-trained models, visit https://universe.roboflow.com
 
-The dataset includes 23 images.
+The dataset includes 52 images.
 Distribuidoras-Bottles are annotated in YOLOv8 format.
 
 No pre-processing or augmentation was applied.

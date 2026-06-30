@@ -1,19 +1,31 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
+import os
+import glob
 
-# 1. CARREGA O SEU MODELO TREINADO
-# Se o arquivo estiver em outra pasta, coloque o caminho completo até o best.pt
-model = YOLO("/home/yan-gorillaz/Documents/Yan/Github/Bottles-Visão-Computacional/Distribuidoras-Bottles.yolov8/runs/detect/train-2/weights/best.pt")
+# 1. BUSCA DINÂMICA DO MODELO MAIS RECENTE
+# Corrigido o caminho: removido o 'Distribuidoras-Bottles.yolov8' do meio, pois o runs fica na raiz do repositório
+base_path = "/home/yan-gorillaz/Documents/Yan/Github/Bottles-Visão-Computacional/runs/detect/train*/weights/best.pt"
+arquivos_encontrados = glob.glob(base_path)
+
+if arquivos_encontrados:
+    # Pega o arquivo modificado mais recentemente entre todos os treinos (train, train2, train3...)
+    caminho_best = max(arquivos_encontrados, key=os.path.getmtime)
+    print(f"🧠 Carregando o modelo mais recente encontrado em: {caminho_best}")
+    model = YOLO(caminho_best)
+else:
+    raise FileNotFoundError("❌ Nenhum arquivo 'best.pt' foi encontrado nas pastas runs/detect/train*")
+
+# [CORREÇÃO]: A linha antiga fixa que forçava carregar o 'train-2' foi REMOVIDA daqui para não anular a busca inteligente acima.
 
 # 2. Dicionário do Inventário Geral (Acumulador)
+# Padronizado com os mesmos nomes usados na lógica do CHECK
 inventario_geral = {
-    "Agua Mineral": 0,
-    "Refrigerante": 0,
-    "Cerveja": 0
+    "Agua Areia Branca": 0,
+    "Reformatado Kuat": 0
 }
 
-# Altere para 1 ou 2 se precisar mudar para a webcam externa
 cap = cv2.VideoCapture(2)
 
 print("="*50)
@@ -50,40 +62,51 @@ while True:
     if key == ord(' '):
         print("\n📸 [CHECK] Analisando fardo atual com IA customizada...")
         
-        # Executa a detecção usando o seu modelo
         results = model(frame, conf=0.5, verbose=False)
         
-        contagem_fardo_atual = 0
-
-        # Cria uma cópia do frame para desenhar os resultados e mostrar na tela temporariamente
+        # Dicionário temporário para contar o que está NESTE fardo específico
+        contagem_fardo = {
+            "Agua Areia Branca": 0,
+            "Reformatado Kuat": 0
+        }
+        
         frame_resultado = frame.copy()
+        detectou_algo = False
 
         for result in results:
             for box in result.boxes:
-                # Como você treinou o modelo apenas para as suas tampas, 
-                # qualquer detecção válida aqui será computada
-                contagem_fardo_atual += 1
-                
-                # Desenha os quadradinhos verdes nas tampas que o modelo encontrar
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                cv2.rectangle(frame_resultado, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.putText(frame_resultado, "Tampa", (x1, y1 - 5), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+                class_id = int(box.cls[0])
+                class_name = model.names[class_id]  # Pega o nome da classe do seu modelo
 
-        if contagem_fardo_atual == 0:
-            print("⚠️ Nenhuma tampa detectada pelo modelo. Verifique o enquadramento.")
+                # Mapeia o nome do modelo para o nome do inventário
+                produto_identificado = None
+                if "agua" in class_name.lower() or "areia" in class_name.lower():
+                    produto_identificado = "Agua Areia Branca"
+                elif "kuat" in class_name.lower() or "refri" in class_name.lower():
+                    produto_identificado = "Reformatado Kuat"
+
+                # Se for um dos produtos desejados, contabiliza e desenha na tela
+                if produto_identificado:
+                    contagem_fardo[produto_identificado] += 1
+                    detectou_algo = True
+                    
+                    # Desenha o quadrado na tela
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    cv2.rectangle(frame_resultado, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(frame_resultado, produto_identificado, (x1, y1 - 5), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+
+        if not detectou_algo:
+            print("⚠️ Nenhuma tampa de Água ou Kuat detectada pelo modelo.")
             continue
 
-        # COMO VOCÊ SÓ TEM UM TIPO DE PRODUTO TREINADO POR ENQUANTO:
-        # Vamos assumir que tudo o que ele encontrar agora será "Agua Mineral"
-        tipo_detectado = "Agua Mineral"
-
-        # Atualiza o inventário
-        inventario_geral[tipo_detectado] += contagem_fardo_atual
+        # Soma as quantidades deste fardo para o Inventário Geral definitivo
+        for produto, qtd in contagem_fardo.items():
+            if qtd > 0:
+                inventario_geral[produto] += qtd
+                print(f"✓ SUCESSO: Detectadas {qtd} unidades de {produto}!")
         
-        print(f"✓ SUCESSO: Detectadas {contagem_fardo_atual} tampas de {tipo_detectado}!")
-        
-        # Mostra o frame com os quadrados verdes por 2 segundos para você conferir a detecção
+        # Mostra o resultado por 2 segundos
         cv2.imshow("Estacao de Contagem - Visao Superior", frame_resultado)
         cv2.waitKey(2000)
 

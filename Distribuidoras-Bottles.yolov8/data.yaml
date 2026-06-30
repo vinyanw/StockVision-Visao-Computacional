@@ -1,6 +1,6 @@
-train: ../train/images
-val: ../valid/images
-test: ../test/images
+path: /home/yan-gorillaz/Documents/Yan/Github/Bottles-Visão-Computacional/Distribuidoras-Bottles.yolov8
+train: train/images
+val: train/images
 
 nc: 2
 names: ['Tampa Agua Areia Branca', 'Tampa Refrigerante Kuat']
